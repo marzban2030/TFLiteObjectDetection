@@ -35,6 +35,10 @@ android {
         mlModelBinding true
         dataBinding true
     }
+
+    aaptOptions {
+        noCompress "tflite"
+    }
 }
 
 task downloadModelFile(type: Download) {
