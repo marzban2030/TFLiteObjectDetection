@@ -23,6 +23,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.example.tfliteobjectdetection.databinding.ActivityCameraBinding
 import com.example.tfliteobjectdetection.detectors.CustomModelDetector
 import com.example.tfliteobjectdetection.detectors.MlKitDetector
+import com.example.tfliteobjectdetection.detectors.MlKitDetectorCustom
 import com.example.tfliteobjectdetection.detectors.TasksLibraryDetector
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -91,6 +92,7 @@ class CameraActivity : AppCompatActivity() {
 
             detectors = listOf(
                 MlKitDetector(),
+                MlKitDetectorCustom(),
                 CustomModelDetector(this),
                 TasksLibraryDetector(this)
             )

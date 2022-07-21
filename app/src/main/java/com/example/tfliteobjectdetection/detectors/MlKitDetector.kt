@@ -6,21 +6,15 @@ import androidx.work.DirectExecutor
 import com.example.tfliteobjectdetection.SimpleDetection
 import com.example.tfliteobjectdetection.DetectorDemo
 import com.example.tfliteobjectdetection.normalize
+import com.google.mlkit.common.model.LocalModel
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.objects.ObjectDetection
+import com.google.mlkit.vision.objects.ObjectDetector
+import com.google.mlkit.vision.objects.custom.CustomObjectDetectorOptions
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 
-class MlKitDetector : DetectorDemo {
-    private val detector = ObjectDetection.getClient(
-        ObjectDetectorOptions.Builder()
-            .enableClassification()
-            .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
-            .setExecutor(DirectExecutor.INSTANCE)
-            .build()
-    )
-
-    override val name: String
-        get() = "ML Kit"
+abstract class MlKitDetectorBase : DetectorDemo {
+    protected abstract val detector: ObjectDetector
 
     override fun detect(image: Bitmap, rotationDegrees: Int, callback: (SimpleDetection?) -> Unit) {
         val inputImage = InputImage.fromBitmap(image, rotationDegrees)
@@ -43,5 +37,38 @@ class MlKitDetector : DetectorDemo {
 
     override fun dispose() {
         detector.close()
+    }
+}
+
+class MlKitDetector : MlKitDetectorBase() {
+    override val detector = ObjectDetection.getClient(
+        ObjectDetectorOptions.Builder()
+            .setDetectorMode(CustomObjectDetectorOptions.STREAM_MODE)
+            .enableClassification()
+            .setExecutor(DirectExecutor.INSTANCE)
+            .build()
+    )
+
+    override val name get() = "ML Kit"
+}
+
+class MlKitDetectorCustom : MlKitDetectorBase() {
+    private val modelName = "efficientnet4.tflite"
+    override val detector = createObjectDetector(modelName)
+
+    override val name get() = "ML Kit: $modelName"
+
+    private fun createObjectDetector(modelName: String): ObjectDetector {
+        val localModel = LocalModel.Builder()
+            .setAssetFilePath(modelName)
+            .build()
+        val options = CustomObjectDetectorOptions.Builder(localModel)
+            .setDetectorMode(CustomObjectDetectorOptions.STREAM_MODE)
+            .enableClassification()
+            .setClassificationConfidenceThreshold(0.5f)
+            .setMaxPerObjectLabelCount(3)
+            .setExecutor(DirectExecutor.INSTANCE)
+            .build()
+        return ObjectDetection.getClient(options)
     }
 }

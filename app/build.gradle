@@ -41,13 +41,18 @@ android {
     }
 }
 
-task downloadModelFile(type: Download) {
+task downloadDetectionModelFile(type: Download) {
     src 'https://tfhub.dev/tensorflow/lite-model/efficientdet/lite3/detection/metadata/1?lite-format=tflite'
     dest 'src/main/ml/efficientdet3.tflite'
     overwrite false
 }
+task downloadClassificationModelFile(type: Download) {
+    src 'https://tfhub.dev/tensorflow/lite-model/efficientnet/lite4/int8/2?lite-format=tflite'
+    dest 'src/main/ml/efficientnet4.tflite'
+    overwrite false
+}
 
-preBuild.dependsOn downloadModelFile
+preBuild.dependsOn downloadDetectionModelFile, downloadClassificationModelFile
 
 def cameraXVersion = '1.2.0-alpha03'
 def tfliteVersion= '0.3.0'
@@ -69,6 +74,7 @@ dependencies {
 
     implementation 'com.google.mlkit:object-detection-common:18.0.0'
     implementation 'com.google.mlkit:object-detection:17.0.0'
+    implementation 'com.google.mlkit:object-detection-custom:17.0.0'
 
     implementation "org.tensorflow:tensorflow-lite-task-vision:$tfliteVersion"
 
