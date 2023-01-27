@@ -21,50 +21,28 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.example.tfliteobjectdetection.databinding.ActivityCameraBinding
-import com.example.tfliteobjectdetection.detectors.CustomModelDetector
-import com.example.tfliteobjectdetection.detectors.MlKitDetector
-import com.example.tfliteobjectdetection.detectors.MlKitDetectorCustom
-import com.example.tfliteobjectdetection.detectors.TasksLibraryDetector
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
 class CameraActivity : AppCompatActivity() {
     private lateinit var binding: ActivityCameraBinding
-
-    private lateinit var detectors: List<DetectorDemo>
-
-    @Volatile
-    private var currentDetector: DetectorDemo? = null
-
+    
+    private lateinit var detector: Detector
     private lateinit var inputBuffer: Bitmap
 
     private val executor = Executors.newSingleThreadExecutor()
     private val permissions = listOf(Manifest.permission.CAMERA)
     private val permissionsRequestCode = Random.nextInt(0, 10000)
-
+    
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding = ActivityCameraBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        binding.detectorSelector.onItemSelectedListener =
-            object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(
-                    parent: AdapterView<*>?,
-                    view: View?,
-                    position: Int,
-                    id: Long
-                ) {
-                    currentDetector = detectors[position]
-                }
-
-                override fun onNothingSelected(parent: AdapterView<*>?) {
-                    currentDetector = null
-                }
-            }
+        
+        detector = Detector(this)
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
@@ -90,16 +68,6 @@ class CameraActivity : AppCompatActivity() {
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                 .build()
 
-            detectors = listOf(
-                MlKitDetector(),
-                MlKitDetectorCustom(),
-                CustomModelDetector(this),
-                TasksLibraryDetector(this)
-            )
-            binding.detectorSelector.adapter = ArrayAdapter(this,
-                android.R.layout.simple_spinner_item,
-                detectors.map { it.name }
-            )
 
             imageAnalysis.setAnalyzer(executor) { input ->
                 if (!::inputBuffer.isInitialized) {
@@ -114,10 +82,16 @@ class CameraActivity : AppCompatActivity() {
                 input.use {
                     inputBuffer.copyPixelsFromBuffer(input.planes[0].buffer)
                 }
-
-                currentDetector?.detect(inputBuffer, rotationDegrees, ::reportDetection)
+                
+                val results = detector.detect(inputBuffer, rotationDegrees)
+                var detection = StringBuilder()
+                for (result in results!!) {
+                    detection.append(" ").append(result.categories[0].label)
+                }
+                reportDetection(detection.toString())
+                
             }
-
+            
             // Create a new camera selector each time, enforcing lens facing
             val cameraSelector = CameraSelector.Builder()
                 .requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
@@ -133,26 +107,10 @@ class CameraActivity : AppCompatActivity() {
 
         }, ContextCompat.getMainExecutor(this))
     }
-
-    private fun reportDetection(prediction: SimpleDetection?) {
+    
+    private fun reportDetection(detection: String) {
         binding.viewFinder.post {
-            if (prediction == null) {
-                binding.boxPrediction.visibility = View.GONE
-                binding.textPrediction.text = resources.getString(R.string.no_detection)
-                return@post
-            }
-
-            val location = prediction.boundingBox.denormalize(binding.viewFinder.width, binding.viewFinder.height)
-
-            binding.textPrediction.text = prediction.label
-            (binding.boxPrediction.layoutParams as ViewGroup.MarginLayoutParams).apply {
-                topMargin = binding.viewFinder.top + location.top.toInt()
-                leftMargin = binding.viewFinder.left + location.left.toInt()
-                width = location.width().toInt().coerceAtMost(binding.viewFinder.width)
-                height = location.height().toInt().coerceAtMost(binding.viewFinder.height)
-            }
-
-            binding.boxPrediction.visibility = View.VISIBLE
+            binding.textPrediction.text = detection
         }
     }
 
@@ -187,9 +145,7 @@ class CameraActivity : AppCompatActivity() {
             shutdown()
             awaitTermination(1000, TimeUnit.MILLISECONDS)
         }
-        if (::detectors.isInitialized) {
-            detectors.forEach(DetectorDemo::dispose)
-        }
+        
         super.onDestroy()
     }
 

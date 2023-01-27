@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace 'com.example.tfliteobjectdetection'
-    compileSdk 32
+    compileSdk 33
 
     defaultConfig {
         applicationId "com.example.TFLiteObjectDetection"
         minSdk 24
-        targetSdk 32
+        targetSdk 33
         versionCode 1
         versionName "1.0"
 
@@ -32,30 +32,13 @@ android {
         jvmTarget = '1.8'
     }
     buildFeatures {
-        mlModelBinding true
+        //mlModelBinding true
         dataBinding true
     }
 
-    aaptOptions {
-        noCompress "tflite"
-    }
 }
-
-task downloadDetectionModelFile(type: Download) {
-    src 'https://tfhub.dev/tensorflow/lite-model/efficientdet/lite3/detection/metadata/1?lite-format=tflite'
-    dest 'src/main/ml/efficientdet3.tflite'
-    overwrite false
-}
-task downloadClassificationModelFile(type: Download) {
-    src 'https://tfhub.dev/tensorflow/lite-model/efficientnet/lite4/int8/2?lite-format=tflite'
-    dest 'src/main/ml/efficientnet4.tflite'
-    overwrite false
-}
-
-preBuild.dependsOn downloadDetectionModelFile, downloadClassificationModelFile
 
 def cameraXVersion = '1.2.0-alpha03'
-def tfliteVersion= '0.3.0'
 dependencies {
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.appcompat:appcompat:1.4.2'
@@ -67,18 +50,11 @@ dependencies {
     implementation "androidx.camera:camera-lifecycle:$cameraXVersion"
     implementation "androidx.camera:camera-view:$cameraXVersion"
     implementation "androidx.camera:camera-video:$cameraXVersion"
-
-    implementation "org.tensorflow:tensorflow-lite-support:$tfliteVersion"
-    implementation "org.tensorflow:tensorflow-lite-metadata:$tfliteVersion"
+    
+    implementation 'org.tensorflow:tensorflow-lite-task-vision:0.4.0'
+    // Import the GPU delegate plugin Library for GPU inference
+    implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.0'
     implementation 'org.tensorflow:tensorflow-lite-gpu:2.9.0'
-
-    implementation 'com.google.mlkit:object-detection-common:18.0.0'
-    implementation 'com.google.mlkit:object-detection:17.0.0'
-    implementation 'com.google.mlkit:object-detection-custom:17.0.0'
-
-    implementation "org.tensorflow:tensorflow-lite-task-vision:$tfliteVersion"
-
-    implementation 'com.google.mediapipe:solution-core:latest.release'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
